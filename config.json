@@ -1,0 +1,5 @@
+{
+    "OPENAI_API_KEY": "placw holder",
+    "GITHUB_TOKEN": "hib tomen",
+    "DATABASE_URI": "sqlite:///database.sql"
+}

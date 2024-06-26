@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1c1f1d;
+            color: #c2bcbc;
+            font-weight: bold;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        h1 {
+            color: #6b6c6e;
+        }
+
+        button {
+            border: none;
+            background: none;
+            position: fixed;
+            bottom: 5%;
+        }
+
+        .j-img {
+            border: none;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            border-radius: 55%;
+        }
+
+        img {
+            margin: 15px 0;
+        }
+
+        div {
+            width: 95vw;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jarvis</h1>
+    <button id="startButton"><img src="static/HUD.gif" width="100" class="j-img" /></button>
+    <div id="output"></div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const outputDiv = document.getElementById('output');
+
+        const recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false; // Changed to false to handle only final result
+        recognition.lang = 'en-US';
+
+        startButton.addEventListener('click', () => {
+            recognition.start();
+            outputDiv.textContent = 'Listening...';
+        });
+
+        recognition.addEventListener('result', event => {
+            const transcript = event.results[0][0].transcript;
+            outputDiv.textContent = `You said: ${transcript}`;
+
+            if (transcript.toLowerCase().includes('hello')) {
+                speak('Hello! Sir, how may I help you today?');
+                outputDiv.textContent = 'Jarvis: Hello! Sir, how may I help you today?';
+            } else if (transcript.toLowerCase().includes('time')) {
+                const currentTime = new Date().toLocaleTimeString();
+                speak(`The current time is ${currentTime}`);
+                outputDiv.textContent = `Jarvis: The current time is ${currentTime}`;
+            } else if (transcript.toLowerCase().includes('search for')) {
+                const searchTerm = transcript.split('for')[1].trim();
+                searchWikipedia(searchTerm);
+                outputDiv.textContent = `Jarvis: Searching Wikipedia for ${searchTerm}`;
+                speak(`Searching Wikipedia for ${searchTerm}`);
+            } else if (transcript.toLowerCase().includes('generate image of')) {
+                const imageName = transcript.split('generate image of ')[1].trim();
+                generateImage(imageName);
+                outputDiv.textContent = `Jarvis: Generating image of ${imageName}`;
+                speak(`Generating image of ${imageName}`);
+            } else if (transcript.toLowerCase().includes('create repository')) {
+                createGitHubRepository();
+                outputDiv.textContent = `Jarvis: Initiating GitHub repository creation process`;
+                speak(`Initiating GitHub repository creation process`);
+            } else if (transcript.toLowerCase().includes('add code to repository')) {
+                addCodeToGitHubRepository();
+                outputDiv.textContent = `Jarvis: Initiating code addition to GitHub repository`;
+                speak(`Initiating code addition to GitHub repository`);
+            } else {
+                replyToUser(transcript);
+            }
+        });
+
+        recognition.addEventListener('end', () => {
+            if (outputDiv.textContent === 'Listening...') {
+                outputDiv.textContent = 'You said nothing.';
+            }
+        });
+
+        function speak(text) {
+            const synth = window.speechSynthesis;
+            const utterance = new SpeechSynthesisUtterance(text);
+            synth.speak(utterance);
+        }
+
+        function searchWikipedia(searchTerm) {
+            fetch(`/search?query=${encodeURIComponent(searchTerm)}`)
+                .then(response => response.text())
+                .then(result => {
+                    outputDiv.textContent = `Search Result: ${result}`;
+                    speak(result);
+                })
+                .catch(error => {
+                    console.error('Error fetching search result:', error);
+                    outputDiv.textContent = 'Error fetching search result. Please try again later.';
+                });
+        }
+
+        function generateImage(imageName) {
+            fetch(`/generateimages/${encodeURIComponent(imageName)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const images = data.images;
+                    let totalHtml = "Generated. You can view images below.";
+                    speak(totalHtml);
+                    images.forEach(imageUrl => {
+                        let html = `<div class="col-md-4 my-2">
+                            <img width="300" src="${imageUrl}" class="img-responsive">
+                        </div>`;
+                        totalHtml += html;
+                    });
+                    outputDiv.innerHTML = totalHtml;
+                })
+                .catch(error => {
+                    console.error('Error fetching image:', error);
+                    outputDiv.textContent = 'Error fetching image. Please try again later.';
+                });
+        }
+
+        function createGitHubRepository() {
+            fetch('/reply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: 'Create repository'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                outputDiv.textContent = `Jarvis: ${data.response}`;
+                speak(data.response);
+            })
+            .catch(error => {
+                console.error('Error creating GitHub repository:', error);
+                outputDiv.textContent = 'Error creating GitHub repository. Please try again later.';
+            });
+        }
+
+        function addCodeToGitHubRepository() {
+            fetch('/reply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: 'Add code to repository'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                outputDiv.textContent = `Jarvis: ${data.response}`;
+                speak(data.response);
+            })
+            .catch(error => {
+                console.error('Error adding code to GitHub repository:', error);
+                outputDiv.textContent = 'Error adding code to GitHub repository. Please try again later.';
+            });
+        }
+
+        function replyToUser(query) {
+            fetch('/reply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: query
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                outputDiv.textContent = `Jarvis: ${data.response}`;
+                speak(data.response);
+            })
+            .catch(error => {
+                console.error('Error replying to user:', error);
+                outputDiv.textContent = 'Error replying to user. Please try again later.';
+            });
+        }
+    </script>
+</body>
+</html>
